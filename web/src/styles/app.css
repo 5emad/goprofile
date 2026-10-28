@@ -435,7 +435,6 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .auth-card .logo { align-self: center; }
 .auth-card h1 { text-align: center; }
 .auth-card > .muted { text-align: center; margin-top: -8px; }
-.secure-note { text-align: center; font-size: 11.5px; color: var(--muted); }
 
 /* ---------- misc ---------- */
 .empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px; color: var(--muted); text-align: center; }

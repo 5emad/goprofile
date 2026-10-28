@@ -70,7 +70,6 @@ export function Login() {
         <button type="button" className="btn-link" onClick={() => vm.setMode(vm.mode === 'login' ? 'register' : 'login')}>
           {vm.mode === 'login' ? 'حساب نداری؟ ثبت‌نام کن' : 'حساب داری؟ وارد شو'}
         </button>
-        <p className="secure-note">🔒 همه داده‌ها با رمزنگاری کلید عمومی/خصوصی منتقل می‌شوند</p>
       </form>
     </div>
   )

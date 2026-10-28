@@ -1,0 +1,8 @@
+/* IRANYekanX (Farsi numerals) — proprietary, see assets/fonts/FontLicense.txt */
+@font-face { font-family: 'IRANYekanX'; font-weight: 300; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-Light.woff2') format('woff2'); }
+@font-face { font-family: 'IRANYekanX'; font-weight: 400; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'IRANYekanX'; font-weight: 500; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'IRANYekanX'; font-weight: 600; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-DemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'IRANYekanX'; font-weight: 700; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'IRANYekanX'; font-weight: 800; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-ExtraBold.woff2') format('woff2'); }
+@font-face { font-family: 'IRANYekanX'; font-weight: 900; font-display: swap; src: url('../assets/fonts/IRANYekanXFaNum-Black.woff2') format('woff2'); }

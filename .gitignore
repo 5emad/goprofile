@@ -1,0 +1,31 @@
+# secrets
+.env
+deploy/.env
+*.key
+server/data/
+
+# go
+server/goprofile
+server/*.exe
+
+# web
+web/node_modules/
+web/dist/
+
+# flutter
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.idea/
+app/*.iml
+app/android/local.properties
+app/android/key.properties
+app/android/app/*.jks
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/

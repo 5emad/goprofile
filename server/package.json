@@ -1,0 +1,22 @@
+{
+  "name": "goprofile-server",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-sql.mjs",
+    "start": "node dist/main.js",
+    "dev": "tsc -p tsconfig.json && node scripts/copy-sql.mjs && node dist/main.js",
+    "test": "tsc -p tsconfig.json && node --test \"dist/**/*.test.js\""
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.0",
+    "typescript": "~5.8.3"
+  }
+}

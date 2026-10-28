@@ -1,0 +1,108 @@
+name: goprofile
+
+# One primary and two streaming replicas. The API writes to the primary and
+# spreads reads across healthy replicas. Nothing here is published to the
+# internet; nginx on the host proxies to the API on 127.0.0.1:8080.
+
+x-pg: &pg
+  image: postgres:17-alpine
+  restart: unless-stopped
+  networks: [db]
+  shm_size: 256mb
+  security_opt: [no-new-privileges:true]
+
+services:
+  db-primary:
+    <<: *pg
+    environment:
+      POSTGRES_DB: goprofile
+      POSTGRES_USER: goprofile
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --data-checksums
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:?set REPLICATION_PASSWORD in .env}
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+      - -c
+      - hot_standby=on
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_connections=on
+    volumes:
+      - pg-primary:/var/lib/postgresql/data
+      - ./postgres/primary-init.sh:/docker-entrypoint-initdb.d/10-replication.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U goprofile -d goprofile]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  db-replica-1:
+    <<: *pg
+    environment: &replica-env
+      PRIMARY_HOST: db-primary
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+      SLOT_NAME: replica_1
+    entrypoint: [/bin/sh, /replica-entrypoint.sh]
+    volumes:
+      - pg-replica-1:/var/lib/postgresql/data
+      - ./postgres/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    depends_on:
+      db-primary: { condition: service_healthy }
+    healthcheck: &replica-health
+      test: [CMD-SHELL, pg_isready -U goprofile -d goprofile]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  db-replica-2:
+    <<: *pg
+    environment:
+      <<: *replica-env
+      SLOT_NAME: replica_2
+    entrypoint: [/bin/sh, /replica-entrypoint.sh]
+    volumes:
+      - pg-replica-2:/var/lib/postgresql/data
+      - ./postgres/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    depends_on:
+      db-primary: { condition: service_healthy }
+    healthcheck: *replica-health
+
+  api:
+    build: ../server
+    image: goprofile-api:${APP_VERSION:-dev}
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    networks: [db, edge]
+    environment:
+      DATABASE_URL: postgres://goprofile:${DB_PASSWORD}@db-primary:5432/goprofile?sslmode=disable
+      DATABASE_REPLICA_URLS: postgres://goprofile:${DB_PASSWORD}@db-replica-1:5432/goprofile?sslmode=disable,postgres://goprofile:${DB_PASSWORD}@db-replica-2:5432/goprofile?sslmode=disable
+      KEY_FILE: /data/server.key
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://goprofile.ir,https://www.goprofile.ir,app://goprofile,https://localhost,http://localhost}
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
+      TRUST_PROXY: "true"
+    volumes:
+      - api-keys:/data
+    ports:
+      - 127.0.0.1:8080:8080
+    depends_on:
+      db-primary: { condition: service_healthy }
+
+networks:
+  db:
+    internal: true
+  edge: {}
+
+volumes:
+  pg-primary:
+  pg-replica-1:
+  pg-replica-2:
+  api-keys:

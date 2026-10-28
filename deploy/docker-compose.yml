@@ -79,12 +79,14 @@ services:
     image: goprofile-api:${APP_VERSION:-dev}
     restart: unless-stopped
     read_only: true
+    tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
     networks: [db, edge]
     environment:
-      DATABASE_URL: postgres://goprofile:${DB_PASSWORD}@db-primary:5432/goprofile?sslmode=disable
-      DATABASE_REPLICA_URLS: postgres://goprofile:${DB_PASSWORD}@db-replica-1:5432/goprofile?sslmode=disable,postgres://goprofile:${DB_PASSWORD}@db-replica-2:5432/goprofile?sslmode=disable
+      PORT: "8080"
+      DATABASE_URL: postgres://goprofile:${DB_PASSWORD}@db-primary:5432/goprofile
+      DATABASE_REPLICA_URLS: postgres://goprofile:${DB_PASSWORD}@db-replica-1:5432/goprofile,postgres://goprofile:${DB_PASSWORD}@db-replica-2:5432/goprofile
       KEY_FILE: /data/server.key
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://goprofile.ir,https://www.goprofile.ir,app://goprofile,https://localhost,http://localhost}
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}

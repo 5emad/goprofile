@@ -119,8 +119,6 @@ class _LoginViewState extends State<LoginView> {
                         onPressed: () => setState(() => register = !register),
                         child: Text(register ? 'حساب داری؟ وارد شو' : 'حساب نداری؟ ثبت‌نام کن'),
                       ),
-                      Text('🔒 همه داده‌ها با رمزنگاری کلید عمومی/خصوصی منتقل می‌شوند',
-                          textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: gp.muted)),
                     ]),
                   ),
                 ),

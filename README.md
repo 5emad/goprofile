@@ -1,10 +1,10 @@
 # goprofile
 
-ثبت فعالیت روزانه با جدول مشارکت شبیه GitHub (نمای ۲ بعدی و ۳ بعدی)، کارتابل‌ها به سبک جیرا، لاگ زمان دستی و تایمری، و گزارش هفتگی شبیه WorklogPro.
+ثبت فعالیت روزانه با جدول مشارکت شبیه GitHub (نمای ۲ بعدی و ۳ بعدی متحرک)، کارتابل‌ها به سبک جیرا، لاگ زمان دستی و تایمری، و گزارش هفتگی شبیه WorklogPro.
 
 | بخش | مسیر | فناوری |
 |---|---|---|
-| API | `server/` | Go، PostgreSQL (pgx) |
+| API (بک‌اند) | `server/` | Node.js + TypeScript، PostgreSQL (pg) |
 | وب‌سایت | `web/` | React + TypeScript + Vite |
 | اپ ویندوز و اندروید | `app/` | Flutter |
 | استقرار | `deploy/` | Docker Compose، nginx، Let's Encrypt |
@@ -16,7 +16,7 @@
   - `data/` پیاده‌سازی ریپازیتوری‌ها روی API
   - `presentation/` ViewModelها (hookها در React، `ChangeNotifier` در Flutter) و Viewها
   - `core/` رمزنگاری و انتقال
-- **سرور**: `secure` (رمزنگاری)، `db` (لود بالانس و migration)، `auth` (Argon2id و توکن)، `api` (هندلرها).
+- **سرور Node.js**: `secure` (رمزنگاری)، `db` (لود بالانس و migration)، `api` (احراز هویت Argon2id، کارتابل، تسک، لاگ زمان، آمار).
 
 ## امنیت
 
@@ -24,7 +24,7 @@
 - این لایه روی TLS 1.2/1.3 در nginx قرار می‌گیرد (HSTS، CSP سخت، محدودیت نرخ، فقط دو مسیر API قابل دسترس).
 - رمز عبور با Argon2id؛ توکن نشست تصادفی ۲۵۶ بیتی و فقط هش آن در دیتابیس؛ توکن در اپ داخل keystore سیستم‌عامل.
 - همه کوئری‌ها پارامتری و محدود به کاربر جاری؛ دیتابیس فقط روی شبکه داخلی Docker.
-- کانتینر API: read-only، بدون capability، کاربر nonroot.
+- کانتینر API: read-only، بدون capability، کاربر غیر root (node).
 
 ## دیتابیس و لود بالانس
 
@@ -34,13 +34,13 @@
 
 ```bash
 # API (به PostgreSQL نیاز دارد)
-cd server && DATABASE_URL=postgres://goprofile:goprofile@localhost:5432/goprofile?sslmode=disable go run ./cmd/goprofile
+cd server && npm install && DATABASE_URL=postgres://goprofile:goprofile@localhost:5432/goprofile npm run dev
 
 # وب (درخواست‌های /api به localhost:8080 پروکسی می‌شوند)
 cd web && npm install && npm run dev
 
 # تست‌ها
-cd server && go test ./...
+cd server && npm test
 cd web && npm test && node scripts/smoke.ts http://localhost:8080
 cd app && flutter test
 ```

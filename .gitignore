@@ -4,9 +4,9 @@ deploy/.env
 *.key
 server/data/
 
-# go
-server/goprofile
-server/*.exe
+# node
+server/node_modules/
+server/dist/
 
 # web
 web/node_modules/
@@ -29,3 +29,4 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
+web/.vite/

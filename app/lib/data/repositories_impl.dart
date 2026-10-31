@@ -111,7 +111,8 @@ class WorklogRepositoryImpl implements WorklogRepository {
   @override
   Future<Worklog> start(int taskId) async => worklogFromJson(await _api.post('/tasks/$taskId/timer') as J);
   @override
-  Future<Worklog> stop([String note = '']) async => worklogFromJson(await _api.post('/timer/stop', {'note': note}) as J);
+  Future<Worklog> stop({String note = '', bool complete = false}) async =>
+      worklogFromJson(await _api.post('/timer/stop', {'note': note, 'complete': complete}) as J);
 }
 
 class StatsRepositoryImpl implements StatsRepository {

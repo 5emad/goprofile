@@ -33,7 +33,14 @@ class SettingsView extends StatelessWidget {
             trailing,
           ]),
         );
-    return GpPage(title: 'تنظیمات', children: [
+    return GpPage(title: 'تنظیمات', actions: [
+      if (MediaQuery.sizeOf(context).width < 860)
+        OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(), body: const ProfileView()))),
+          icon: const Icon(Icons.person_outline_rounded, size: 18),
+          label: const Text('پروفایل'),
+        ),
+    ], children: [
       SectionCard(
         child: Column(children: [
           row('حالت جیرا', 'در ایجاد تسک فیلد «شماره تسک جیرا» نمایش داده می‌شود و همه‌جا جای کلید داخلی را می‌گیرد',

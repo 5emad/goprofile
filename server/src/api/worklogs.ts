@@ -42,13 +42,13 @@ export function worklogRoutes(r: Router, db: Cluster) {
     return l
   }
 
-  // Logs starting between the from and to dates (inclusive) in the user's timezone; served by a replica.
+  // Logs starting between the from and to dates (inclusive, up to a year) in the user's timezone; served by a replica.
   r.add('GET', '/worklogs', async (c) => {
     const u = user(c)
     const from = c.query.get('from') ?? ''
     const to = c.query.get('to') ?? ''
     const days = (Date.parse(to) - Date.parse(from)) / 86_400_000
-    if (!dateRe.test(from) || !dateRe.test(to) || !(days >= 0 && days <= 93)) throw new HttpError(400, 'بازه تاریخ معتبر نیست')
+    if (!dateRe.test(from) || !dateRe.test(to) || !(days >= 0 && days <= 370)) throw new HttpError(400, 'بازه تاریخ معتبر نیست')
     return queryWorklogs(
       db.R(),
       `w.user_id = $1 AND w.started_at >= ($2::date)::timestamp AT TIME ZONE $4 AND w.started_at < ($3::date + 1)::timestamp AT TIME ZONE $4`,
@@ -110,19 +110,35 @@ export function worklogRoutes(r: Router, db: Cluster) {
     return created(await one(uid, wid))
   })
 
+  // Stops the running timer. With complete: true the task also moves to the board's first done status.
   r.add('POST', '/timer/stop', async (c) => {
     const uid = user(c).id
-    const note = (field<string>(body(c, ['note']), 'note', 'string') ?? '').trim()
+    const b = body(c, ['note', 'complete'])
+    const note = (field<string>(b, 'note', 'string') ?? '').trim()
+    const complete = field<boolean>(b, 'complete', 'bool') ?? false
     if (runes(note) > 1000) throw new HttpError(400, 'توضیح لاگ خیلی طولانی است')
-    const row = (
-      await db.W().query(
-        `UPDATE worklogs SET ended_at = GREATEST(now(), started_at), note = COALESCE(NULLIF($2, ''), note)
-         WHERE user_id = $1 AND ended_at IS NULL RETURNING id`,
-        [uid, note],
-      )
-    ).rows[0]
-    if (!row) throw new HttpError(404, 'تایمری در حال اجرا نیست')
-    return one(uid, row.id)
+    const wid = await tx(db.W(), async (q) => {
+      const row = (
+        await q.query(
+          `UPDATE worklogs SET ended_at = GREATEST(now(), started_at), note = COALESCE(NULLIF($2, ''), note)
+           WHERE user_id = $1 AND ended_at IS NULL RETURNING id, task_id`,
+          [uid, note],
+        )
+      ).rows[0]
+      if (!row) throw new HttpError(404, 'تایمری در حال اجرا نیست')
+      if (complete) {
+        const done = await q.query(
+          `UPDATE tasks t SET status_id = s.id, done_at = COALESCE(t.done_at, now()), updated_at = now()
+           FROM (SELECT st.id FROM statuses st JOIN tasks x ON x.board_id = st.board_id
+                 WHERE x.id = $1 AND st.is_done ORDER BY st.position, st.id LIMIT 1) s
+           WHERE t.id = $1 AND t.user_id = $2`,
+          [row.task_id, uid],
+        )
+        if (!done.rowCount) throw new HttpError(400, 'این کارتابل وضعیت «انجام‌شده» ندارد')
+      }
+      return row.id as number
+    })
+    return one(uid, wid)
   })
 
   // Per-day activity in the user's timezone; served by a replica.

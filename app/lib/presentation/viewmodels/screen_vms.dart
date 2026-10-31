@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show ChangeNotifier;
 import '../../domain/activity.dart';
 import '../../domain/dates.dart';
 import '../../domain/entities.dart';
+import '../../domain/report.dart';
 import '../../domain/repositories.dart';
 
 /// Base for screens that load data and expose loading/error state.
@@ -38,12 +39,19 @@ abstract class LoadableViewModel extends ChangeNotifier {
 }
 
 class DashboardViewModel extends LoadableViewModel {
-  DashboardViewModel(this._stats, this._tasks);
+  DashboardViewModel(this._stats, this._tasks, this._boards);
   final StatsRepository _stats;
   final TaskRepository _tasks;
+  final BoardRepository _boards;
 
   DailyStats? stats;
+  List<Task> tasks = [];
+  List<Board> boards = [];
+
+  /// Open tasks, earliest due date first.
   List<Task> open = [];
+  List<Task> overdue = [];
+  List<Task> soon = [];
   late ActivityGrid grid;
   late Summary summary;
   late List<MonthBucket> months;
@@ -53,9 +61,14 @@ class DashboardViewModel extends LoadableViewModel {
 
   @override
   Future<void> load() => guard(() async {
-        final r = await Future.wait([_stats.daily(), _tasks.list(openOnly: true)]);
+        final r = await Future.wait([_stats.daily(), _tasks.list(), _boards.list()]);
         stats = r[0] as DailyStats;
-        open = r[1] as List<Task>;
+        tasks = r[1] as List<Task>;
+        boards = r[2] as List<Board>;
+        final g = groupTasks(tasks, rangeOf(Period.week, dayKey(DateTime.now())), dayKey(DateTime.now()));
+        open = g.open;
+        overdue = g.overdue;
+        soon = g.soon;
         final s = stats!;
         grid = buildGrid(s.days, s.today);
         summary = summarize(s.days, s.today);
@@ -142,52 +155,59 @@ class BoardViewModel extends LoadableViewModel {
   }
 }
 
-class DayReport {
-  DayReport(this.key);
-  final String key;
-  final List<Worklog> logs = [];
-  int seconds = 0;
-}
-
-class ReportRow {
-  ReportRow(this.log);
-  final Worklog log;
-  final perDay = List.filled(7, 0);
-  int total = 0;
-}
-
+/// Day, week, month or year report with the previous period for comparison.
 class ReportViewModel extends LoadableViewModel {
-  ReportViewModel(this._logs) : week = startOfWeek(dayKey(DateTime.now()));
+  ReportViewModel(this._logs, this._tasks, this._boards, this.goalSeconds) : range = rangeOf(Period.week, dayKey(DateTime.now()));
   final WorklogRepository _logs;
-  String week;
-  List<DayReport> days = [];
-  List<ReportRow> rows = [];
-  int total = 0;
+  final TaskRepository _tasks;
+  final BoardRepository _boards;
+  final int goalSeconds;
 
-  String get end => addDays(week, 6);
-  bool get isCurrent => week == startOfWeek(dayKey(DateTime.now()));
+  Range range;
+  PeriodReport? report;
+  PeriodReport? prev;
+  TaskGroups? groups;
+  List<String> notes = [];
+  Map<int, Meta> statuses = {};
+  String prevName = '';
 
-  void shift(int weeks) {
-    week = weeks == 0 ? startOfWeek(dayKey(DateTime.now())) : addDays(week, weeks * 7);
+  String get today => dayKey(DateTime.now());
+  bool get isCurrent => range.contains(today);
+
+  void setPeriod(Period p) {
+    range = rangeOf(p, range.contains(today) ? today : range.from);
+    load();
+  }
+
+  void shift(int n) {
+    range = n == 0 ? rangeOf(range.period, today) : shiftRange(range, n);
+    load();
+  }
+
+  void openDay(String key) {
+    range = rangeOf(Period.day, key);
     load();
   }
 
   @override
   Future<void> load() => guard(() async {
-        final list = await _logs.range(week, end);
-        days = List.generate(7, (i) => DayReport(addDays(week, i)));
-        final byTask = <int, ReportRow>{};
-        for (final l in list) {
-          final i = days.indexWhere((d) => d.key == dayKey(l.startedAt));
-          if (i < 0) continue;
-          days[i].logs.add(l);
-          days[i].seconds += l.seconds;
-          final row = byTask.putIfAbsent(l.taskId, () => ReportRow(l));
-          row.perDay[i] += l.seconds;
-          row.total += l.seconds;
+        final r = range;
+        final prevRange = shiftRange(r, -1);
+        // A running period is compared with the same number of days at the start of the previous one.
+        final partial = r.contains(today) && today != r.to;
+        var cmp = prevRange;
+        if (partial) {
+          final to = addDays(prevRange.from, diffDays(today, r.from));
+          if (to.compareTo(prevRange.to) < 0) cmp = prevRange.withTo(to);
         }
-        rows = byTask.values.toList()..sort((a, b) => b.total.compareTo(a.total));
-        total = days.fold(0, (s, d) => s + d.seconds);
+        final res = await Future.wait([_logs.range(r.from, r.to), _logs.range(prevRange.from, prevRange.to), _tasks.list(), _boards.list()]);
+        if (r != range) return;
+        report = buildReport(r, res[0] as List<Worklog>, goalSeconds, today: today);
+        prev = buildReport(cmp, res[1] as List<Worklog>, goalSeconds);
+        groups = groupTasks(res[2] as List<Task>, r, today);
+        statuses = {for (final b in res[3] as List<Board>) for (final s in b.statuses) s.id: s};
+        prevName = partial ? 'مدت مشابه ${previousNames[r.period]}' : previousNames[r.period]!;
+        notes = insights(report!, prev, groups!, goalSeconds, prevName);
       });
 }
 

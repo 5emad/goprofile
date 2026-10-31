@@ -1,12 +1,15 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useRef, useState, type FormEvent } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { boardRepo } from '@/data/repositories'
-import { fmtDuration } from '@/domain/dates'
+import { dayKey, fmtDuration } from '@/domain/dates'
+import { dueState } from '@/domain/report'
 import { taskLabel, type Board, type Meta, type MetaKind, type Task } from '@/domain/entities'
 import { Icon } from '../components/Icon'
 import { TaskEditor, TimerButton } from '../components/TaskEditor'
-import { Empty, Field, Modal, Select, Spinner } from '../components/ui'
-import { useApp } from '../store'
+import { DueBadge, Empty, Field, Modal, Select, Spinner } from '../components/ui'
+import { routes, useQuery } from '../nav'
+import { useApp, useTz } from '../store'
 import { useAsync } from '../viewmodels/useAsync'
 import { useBoardVM } from '../viewmodels/useBoardVM'
 import { PageHead } from './Layout'
@@ -14,18 +17,23 @@ import { PageHead } from './Layout'
 const SWATCHES = ['#4f6a32', '#6f8f45', '#8aa665', '#3d5a6c', '#7a5c3a', '#8a4b4b', '#5b4a7a', '#2f3a24']
 
 function NewBoard({ onClose }: { onClose: () => void }) {
-  const { bump } = useApp()
-  const navigate = useNavigate()
+  const { bump, toast } = useApp()
+  const router = useRouter()
   const [f, setF] = useState({ name: '', key: '', color: SWATCHES[0] })
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
   const submit = async (e: FormEvent) => {
     e.preventDefault()
+    if (busy) return
+    setBusy(true)
     try {
       const b = await boardRepo.create(f)
       bump()
-      navigate(`/boards/${b.id}`)
+      toast(`کارتابل «${b.name}» ساخته شد`)
+      router.push(routes.board(b.id))
     } catch (e) {
       setErr((e as Error).message)
+      setBusy(false)
     }
   }
   return (
@@ -46,7 +54,9 @@ function NewBoard({ onClose }: { onClose: () => void }) {
         </Field>
         {err && <div className="alert">{err}</div>}
         <div className="form-actions">
-          <button className="btn btn-primary">ساخت کارتابل</button>
+          <button className="btn btn-primary" disabled={busy}>
+            {busy ? 'در حال ساخت…' : 'ساخت کارتابل'}
+          </button>
         </div>
       </form>
     </Modal>
@@ -69,7 +79,7 @@ export function Boards() {
       ) : (
         <div className="board-grid">
           {boards.data.map((b) => (
-            <Link to={`/boards/${b.id}`} key={b.id} className="card board-card" style={{ '--accent': b.color } as React.CSSProperties}>
+            <Link href={routes.board(b.id)} key={b.id} className="card board-card" style={{ '--accent': b.color } as React.CSSProperties}>
               <div className="board-top">
                 <span className="board-key ltr">{b.key}</span>
                 <span className="board-dot" />
@@ -97,8 +107,10 @@ function TaskCard({ t, board, jira, onOpen, onDragStart }: { t: Task; board: Boa
   const epic = board.epics.find((e) => e.id === t.epic_id)
   const cat = board.categories.find((c) => c.id === t.category_id)
   const phase = board.phases.find((p) => p.id === t.phase_id)
+  const today = dayKey(new Date(), useTz())
+  const due = dueState(t, today)
   return (
-    <article className={`kcard prio-${t.priority} ${t.running ? 'is-running' : ''}`} draggable onDragStart={onDragStart} onClick={onOpen} data-id={t.id}>
+    <article className={`kcard prio-${t.priority} ${t.running ? 'is-running' : ''} ${due ? `due-is-${due}` : ''}`} draggable onDragStart={onDragStart} onClick={onOpen} data-id={t.id}>
       <div className="kcard-top">
         <span className="task-key ltr">{taskLabel(t, jira)}</span>
         <TimerButton task={t} />
@@ -116,6 +128,7 @@ function TaskCard({ t, board, jira, onOpen, onDragStart }: { t: Task; board: Boa
           </span>
         )}
         {phase && <span className="chip chip-plain">{phase.name}</span>}
+        <DueBadge task={t} today={today} always />
       </div>
       {t.logged_seconds > 0 && (
         <div className="kcard-foot">
@@ -137,11 +150,17 @@ const KINDS: { kind: MetaKind; label: string; color?: boolean }[] = [
 function MetaEditor({ board, onChange }: { board: Board; onChange: (b: Board) => void }) {
   const { toast } = useApp()
   const [names, setNames] = useState<Record<string, string>>({})
-  const run = async (p: Promise<Board>) => {
+  const busy = useRef(false)
+  const run = async (fn: () => Promise<Board>, ok?: string) => {
+    if (busy.current) return
+    busy.current = true
     try {
-      onChange(await p)
+      onChange(await fn())
+      if (ok) toast(ok)
     } catch (e) {
       toast((e as Error).message, 'err')
+    } finally {
+      busy.current = false
     }
   }
   return (
@@ -158,24 +177,24 @@ function MetaEditor({ board, onChange }: { board: Board; onChange: (b: Board) =>
                     <input
                       type="color"
                       value={m.color}
-                      onChange={(e) => run(boardRepo.updateMeta(board.id, kind, m.id, { color: e.target.value }))}
+                      onChange={(e) => run(() => boardRepo.updateMeta(board.id, kind, m.id, { color: e.target.value }))}
                       aria-label="رنگ"
                     />
                   )}
                   <input
                     className="input input-flat"
                     defaultValue={m.name}
-                    onBlur={(e) => e.target.value.trim() && e.target.value !== m.name && run(boardRepo.updateMeta(board.id, kind, m.id, { name: e.target.value }))}
+                    onBlur={(e) => e.target.value.trim() && e.target.value !== m.name && run(() => boardRepo.updateMeta(board.id, kind, m.id, { name: e.target.value }))}
                   />
                   {kind === 'statuses' && (
                     <label className="check" title="تسک‌های این ستون انجام‌شده حساب شوند">
-                      <input type="checkbox" checked={!!m.is_done} onChange={(e) => run(boardRepo.updateMeta(board.id, kind, m.id, { is_done: e.target.checked }))} />
+                      <input type="checkbox" checked={!!m.is_done} onChange={(e) => run(() => boardRepo.updateMeta(board.id, kind, m.id, { is_done: e.target.checked }))} />
                       انجام‌شده
                     </label>
                   )}
                   <button
                     className="icon-btn danger"
-                    onClick={() => confirm(`«${m.name}» حذف شود؟`) && run(boardRepo.removeMeta(board.id, kind, m.id))}
+                    onClick={() => confirm(`«${m.name}» حذف شود؟`) && run(() => boardRepo.removeMeta(board.id, kind, m.id))}
                     aria-label="حذف"
                   >
                     <Icon name="trash" size={15} />
@@ -189,7 +208,7 @@ function MetaEditor({ board, onChange }: { board: Board; onChange: (b: Board) =>
                 e.preventDefault()
                 const name = (names[kind] ?? '').trim()
                 if (!name) return
-                run(boardRepo.addMeta(board.id, kind, { name })).then(() => setNames({ ...names, [kind]: '' }))
+                run(() => boardRepo.addMeta(board.id, kind, { name }), 'اضافه شد').then(() => setNames({ ...names, [kind]: '' }))
               }}
             >
               <input className="input" placeholder="افزودن…" value={names[kind] ?? ''} onChange={(e) => setNames({ ...names, [kind]: e.target.value })} />
@@ -205,10 +224,16 @@ function MetaEditor({ board, onChange }: { board: Board; onChange: (b: Board) =>
 }
 
 export function BoardView() {
-  const id = Number(useParams().id)
+  // The id comes from the query string, which is ready only after hydration.
+  const idParam = useQuery('id')
+  if (idParam === undefined) return <Spinner />
+  return <BoardScreen key={idParam} id={Number(idParam)} />
+}
+
+function BoardScreen({ id }: { id: number }) {
   const vm = useBoardVM(id)
   const { user, bump, toast } = useApp()
-  const navigate = useNavigate()
+  const router = useRouter()
   const boards = useAsync(() => boardRepo.list(), [])
   const [tab, setTab] = useState<'kanban' | 'settings'>('kanban')
   const [editing, setEditing] = useState<number | null>(null)
@@ -217,7 +242,16 @@ export function BoardView() {
   const board = vm.board.data
   const jira = user!.settings.jira_mode
 
-  if (vm.board.error) return <div className="alert">{vm.board.error}</div>
+  if (vm.board.error)
+    return (
+      <div className="page page-narrow">
+        <Empty title={vm.board.error}>
+          <Link href={routes.boards} className="btn">
+            بازگشت به کارتابل‌ها
+          </Link>
+        </Empty>
+      </div>
+    )
   if (!board) return <Spinner />
 
   const dropIn = (statusId: number, e: React.DragEvent) => {
@@ -241,7 +275,7 @@ export function BoardView() {
             دسته‌بندی‌ها و تنظیمات
           </button>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate(`/tasks/new?board=${board.id}`)}>
+        <button className="btn btn-primary" onClick={() => router.push(routes.newTask(board.id))}>
           <Icon name="plus" size={16} /> تسک
         </button>
       </PageHead>
@@ -305,7 +339,7 @@ export function BoardView() {
                 try {
                   await boardRepo.remove(board.id)
                   bump()
-                  navigate('/boards')
+                  router.push(routes.boards)
                 } catch (e) {
                   toast((e as Error).message, 'err')
                 }
@@ -316,7 +350,6 @@ export function BoardView() {
           </section>
         </>
       )}
-      {!vm.tasks.loading && !vm.tasks.data?.length && tab === 'kanban' && <Empty title="این کارتابل هنوز خالی است" />}
       {editing && <TaskEditor taskId={editing} boards={boards.data ?? [board]} onClose={() => setEditing(null)} />}
     </div>
   )

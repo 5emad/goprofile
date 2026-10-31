@@ -29,7 +29,12 @@ class SecureClient {
   Future<(ServerKey, int)>? _key;
 
   Future<(ServerKey, int)> _fetchKey() async {
-    final res = await _http.get(Uri.parse('$_base/api/key')).timeout(const Duration(seconds: 15));
+    http.Response res;
+    try {
+      res = await _http.get(Uri.parse('$_base/api/key')).timeout(const Duration(seconds: 15));
+    } catch (_) {
+      throw TransportException('اتصال به اینترنت یا سرور برقرار نیست');
+    }
     if (res.statusCode != 200) throw TransportException('سرور در دسترس نیست');
     final j = jsonDecode(res.body) as Map<String, dynamic>;
     final pub = j['pub'] as String;
@@ -64,7 +69,7 @@ class SecureClient {
           .post(Uri.parse('$_base/api/x'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(sealed.body))
           .timeout(const Duration(seconds: 30));
     } catch (_) {
-      throw TransportException('اتصال به سرور برقرار نشد');
+      throw TransportException('اتصال به اینترنت یا سرور برقرار نیست');
     }
     if (res.statusCode == 409 && retry) {
       _key = null;

@@ -10,7 +10,10 @@ server/dist/
 
 # web
 web/node_modules/
-web/dist/
+web/out/
+web/.next/
+web/next-env.d.ts
+web/.vite/
 
 # flutter
 app/.dart_tool/
@@ -29,4 +32,4 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
-web/.vite/
+

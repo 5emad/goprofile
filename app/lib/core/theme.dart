@@ -9,6 +9,7 @@ class GpColors extends ThemeExtension<GpColors> {
     required this.muted,
     required this.accent,
     required this.danger,
+    required this.warn,
   });
 
   final List<Color> levels;
@@ -18,6 +19,9 @@ class GpColors extends ThemeExtension<GpColors> {
   final Color accent;
   final Color danger;
 
+  /// Orange for tasks near their due date.
+  final Color warn;
+
   static const light = GpColors(
     levels: [Color(0xFFEBECE8), Color(0xFFDCE6CB), Color(0xFFB9CC9A), Color(0xFF8AA665), Color(0xFF4F6A32)],
     surface2: Color(0xFFFBFBF7),
@@ -25,6 +29,7 @@ class GpColors extends ThemeExtension<GpColors> {
     muted: Color(0xFF7D8471),
     accent: Color(0xFF4F6A32),
     danger: Color(0xFFA3473F),
+    warn: Color(0xFFB8660B),
   );
 
   static const dark = GpColors(
@@ -34,6 +39,7 @@ class GpColors extends ThemeExtension<GpColors> {
     muted: Color(0xFF949C86),
     accent: Color(0xFFA5C47A),
     danger: Color(0xFFE08A80),
+    warn: Color(0xFFF0A24A),
   );
 
   @override

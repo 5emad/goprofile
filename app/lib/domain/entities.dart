@@ -113,6 +113,7 @@ class Task {
     required this.dueOn,
     required this.position,
     required this.doneAt,
+    this.createdAt,
     required this.loggedSeconds,
     required this.running,
     this.worklogs = const [],
@@ -133,6 +134,7 @@ class Task {
   final String? dueOn;
   final double position;
   final DateTime? doneAt;
+  final DateTime? createdAt;
   final int loggedSeconds;
   final bool running;
   final List<Worklog> worklogs;

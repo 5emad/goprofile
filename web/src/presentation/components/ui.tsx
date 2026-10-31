@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { dayKey, jalaliOf, keyFromJalali, weekday } from '@/domain/dates'
+import { createPortal } from 'react-dom'
+import { dayKey, fmtDay, jalaliOf, keyFromJalali, weekday } from '@/domain/dates'
+import { dueLabel, dueState } from '@/domain/report'
 import { MONTHS, WEEKDAYS, jalaliMonthLength } from '@/domain/jalali'
 import { Icon } from './Icon'
 
@@ -7,9 +9,15 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    // Keep the page behind the modal from scrolling.
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
   }, [onClose])
-  return (
+  return createPortal(
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <header className="modal-head">
@@ -20,7 +28,8 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
         </header>
         <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -177,5 +186,17 @@ export function Select<T extends string | number>({
         </option>
       ))}
     </select>
+  )
+}
+
+/** Orange for near or today, red for overdue; nothing for done or far-off tasks. */
+export function DueBadge({ task, today, always }: { task: { due_on: string | null; done_at: string | null }; today: string; always?: boolean }) {
+  const s = dueState(task, today)
+  if (!s || (s === 'later' && !always)) return null
+  return (
+    <span className={`due due-${s}`} title={`سررسید ${fmtDay(task.due_on!, true)}`}>
+      <Icon name={s === 'later' ? 'calendar' : 'alert'} size={11} />
+      {s === 'later' ? fmtDay(task.due_on!) : dueLabel(task, today)}
+    </span>
   )
 }

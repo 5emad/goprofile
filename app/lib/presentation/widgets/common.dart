@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../domain/dates.dart';
 import '../../domain/entities.dart';
 import '../../domain/jalali.dart';
+import '../../domain/report.dart';
 import '../viewmodels/session_vm.dart';
 
 void toast(BuildContext context, String msg, {bool error = false}) {
@@ -317,3 +318,35 @@ class _JalaliPickerState extends State<_JalaliPicker> {
     );
   }
 }
+
+/// Orange for near or today, red for overdue; nothing for done tasks (or far-off ones unless [always]).
+class DueChip extends StatelessWidget {
+  const DueChip(this.task, {super.key, this.always = false});
+  final Task task;
+  final bool always;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = dayKey(DateTime.now());
+    final s = dueState(task, today);
+    if (s == null || (s == DueState.later && !always)) return const SizedBox.shrink();
+    final gp = context.gp;
+    final c = switch (s) { DueState.overdue => gp.danger, DueState.later => gp.muted, _ => gp.warn };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(99)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(s == DueState.later ? Icons.event_outlined : Icons.warning_amber_rounded, size: 12, color: c),
+        const SizedBox(width: 3),
+        Text(s == DueState.later ? fmtDay(task.dueOn!) : dueLabel(task, today), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: c)),
+      ]),
+    );
+  }
+}
+
+/// Color for a task's due state, or null when it needs no attention.
+Color? dueColor(BuildContext context, Task t) => switch (dueState(t, dayKey(DateTime.now()))) {
+      DueState.overdue => context.gp.danger,
+      DueState.today || DueState.soon => context.gp.warn,
+      _ => null,
+    };

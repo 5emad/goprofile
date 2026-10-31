@@ -30,9 +30,19 @@ class Api {
   final TokenStore tokens;
   void Function()? onUnauthorized;
 
+  /// Told after each request whether the server was reachable.
+  void Function(bool reachable)? onNetwork;
+
   Future<dynamic> send(String method, String path, [Object? body]) async {
     final token = await tokens.read();
-    final res = await _client.call(method, path, token, body);
+    final SecureResponse res;
+    try {
+      res = await _client.call(method, path, token, body);
+    } on TransportException {
+      onNetwork?.call(false);
+      rethrow;
+    }
+    onNetwork?.call(true);
     if (res.status == 401 && token != null) {
       await tokens.write(null);
       onUnauthorized?.call();

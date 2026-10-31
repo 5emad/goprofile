@@ -279,7 +279,7 @@ class _TaskCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: t.running ? gp.levels[3] : gp.border, width: t.running ? 2 : 1),
+        side: BorderSide(color: t.running ? gp.levels[3] : dueColor(context, t) ?? gp.border, width: t.running || dueColor(context, t) != null ? 2 : 1),
       ),
       child: InkWell(
         onTap: () => showTaskEditor(context, t.id),
@@ -295,6 +295,7 @@ class _TaskCard extends StatelessWidget {
               if (epic != null) MetaChip(epic, icon: Icons.layers_outlined),
               if (cat != null) MetaChip(cat, icon: Icons.sell_outlined),
               if (phase != null) MetaChip(phase),
+              DueChip(t, always: true),
             ]),
             if (t.loggedSeconds > 0)
               Padding(

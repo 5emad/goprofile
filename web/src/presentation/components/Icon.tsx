@@ -24,6 +24,10 @@ const paths: Record<string, string> = {
   flag: 'M5 21V4h11l-2 4 2 4H5',
   layers: 'M12 3 2 8l10 5 10-5zM2 13l10 5 10-5',
   tag: 'M3 12V3h9l9 9-9 9zM7.5 7.5h.01',
+  alert: 'M12 3 2 20h20zM12 10v4M12 17h.01',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  print: 'M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z',
+  wifiOff: 'M2 8.5a15 15 0 0 1 4-2.3M10 5.1a15 15 0 0 1 12 3.4M5 12a10 10 0 0 1 4.5-2.3M14.5 9.8A10 10 0 0 1 19 12M8.5 15.5a5 5 0 0 1 7 0M12 19h.01M3 3l18 18',
 }
 
 export function Icon({ name, size = 18, className }: { name: keyof typeof paths | string; size?: number; className?: string }) {

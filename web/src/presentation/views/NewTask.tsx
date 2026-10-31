@@ -1,24 +1,25 @@
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useRouter } from 'next/router'
 import { boardRepo, taskRepo } from '@/data/repositories'
 import { TaskForm, emptyTask, toInput, type TaskFormValue } from '../components/TaskForm'
 import { Empty, Spinner } from '../components/ui'
+import { routes, useQuery } from '../nav'
 import { useApp } from '../store'
 import { useAsync } from '../viewmodels/useAsync'
 import { PageHead } from './Layout'
 
 export function NewTask() {
-  const [params] = useSearchParams()
-  const navigate = useNavigate()
+  const router = useRouter()
+  const boardParam = useQuery('board')
   const { bump, toast, startTimer, user } = useApp()
   const boards = useAsync(() => boardRepo.list(), [])
-  const pre = Number(params.get('board')) || null
+  const pre = Number(boardParam) || null
 
   const create = (andStart: boolean) => async (v: TaskFormValue) => {
     const t = await taskRepo.create(toInput(v))
     if (andStart) await startTimer(t.id)
     toast(`تسک ${t.key} ساخته شد`)
     bump()
-    navigate(`/boards/${t.board_id}`)
+    router.push(routes.board(t.board_id))
   }
 
   if (!boards.data) return <Spinner />

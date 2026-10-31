@@ -5,6 +5,8 @@ set -eu
 : "${PRIMARY_HOST:?}" "${REPLICATION_PASSWORD:?}" "${SLOT_NAME:?}"
 PGDATA=${PGDATA:-/var/lib/postgresql/data}
 export PGPASSWORD="$REPLICATION_PASSWORD"
+# Newer postgres images ship gosu instead of su-exec.
+ASPG="$(command -v gosu || command -v su-exec) postgres"
 
 mkdir -p "$PGDATA"
 chown postgres:postgres "$PGDATA"
@@ -16,13 +18,13 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
     sleep 2
   done
   # Create the slot only if missing so a rebuilt replica reuses it.
-  su-exec postgres psql "host=$PRIMARY_HOST user=replicator dbname=postgres replication=database" -tAc \
+  $ASPG psql "host=$PRIMARY_HOST user=replicator dbname=postgres replication=database" -tAc \
     "SELECT 1 FROM pg_replication_slots WHERE slot_name='$SLOT_NAME'" 2>/dev/null | grep -q 1 \
-    || su-exec postgres psql "host=$PRIMARY_HOST user=replicator dbname=postgres replication=database" \
+    || $ASPG psql "host=$PRIMARY_HOST user=replicator dbname=postgres replication=database" \
       -c "CREATE_REPLICATION_SLOT $SLOT_NAME PHYSICAL"
-  su-exec postgres pg_basebackup -h "$PRIMARY_HOST" -U replicator -D "$PGDATA" \
+  $ASPG pg_basebackup -h "$PRIMARY_HOST" -U replicator -D "$PGDATA" \
     -X stream -R -S "$SLOT_NAME" --checkpoint=fast
 fi
 
 unset PGPASSWORD
-exec su-exec postgres postgres -c hot_standby=on -c hot_standby_feedback=on
+exec $ASPG postgres -c hot_standby=on -c hot_standby_feedback=on

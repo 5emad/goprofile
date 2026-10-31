@@ -8,7 +8,9 @@ if [ ! -s /home/deploy/.ssh/authorized_keys ]; then
   exit 1
 fi
 
-cat >/etc/ssh/sshd_config.d/90-goprofile.conf <<'EOF'
+# sshd keeps the first value it reads and cloud images ship 50-cloud-init.conf, so sort first.
+rm -f /etc/ssh/sshd_config.d/90-goprofile.conf
+cat >/etc/ssh/sshd_config.d/01-goprofile.conf <<'EOF'
 PermitRootLogin prohibit-password
 PasswordAuthentication no
 KbdInteractiveAuthentication no
@@ -18,4 +20,5 @@ X11Forwarding no
 EOF
 usermod -aG sudo deploy
 sshd -t && systemctl reload ssh || systemctl reload sshd
-echo "SSH hardened. Log in as: ssh deploy@goprofile.ir"
+sshd -T | grep -iE "^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication) "
+echo "SSH hardened. Log in as: ssh deploy@45.149.79.184 (or root with a key)"

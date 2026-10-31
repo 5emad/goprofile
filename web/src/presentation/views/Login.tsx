@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
 import { authRepo } from '@/data/repositories'
 import { Logo } from '../components/Logo'
 import { Field } from '../components/ui'
+import { Redirect, routes } from '../nav'
 import { useApp } from '../store'
 
 function useLoginVM() {
@@ -28,7 +28,7 @@ export function Login() {
   const { user } = useApp()
   const vm = useLoginVM()
   const [f, setF] = useState({ name: '', email: '', password: '' })
-  if (user) return <Navigate to="/" replace />
+  if (user) return <Redirect to={routes.dashboard} />
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
     vm.submit(f)

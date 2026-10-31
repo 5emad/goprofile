@@ -6,7 +6,7 @@ import { useApp, useElapsed, useTz } from '../store'
 import { useAsync } from '../viewmodels/useAsync'
 import { Icon } from './Icon'
 import { TaskForm, type TaskFormValue, toInput } from './TaskForm'
-import { Field, JalaliDateInput, Modal, Spinner } from './ui'
+import { DueBadge, Field, JalaliDateInput, Modal, Spinner } from './ui'
 
 function useTaskEditorVM(taskId: number) {
   const app = useApp()
@@ -34,20 +34,25 @@ function useTaskEditorVM(taskId: number) {
 }
 
 export function TimerButton({ task }: { task: Pick<Task, 'id' | 'running'> }) {
-  const { timer, startTimer, stopTimer, toast } = useApp()
+  const { timer, timerBusy, startTimer, stopTimer, toast } = useApp()
   const running = timer?.task_id === task.id
   const elapsed = useElapsed(running ? timer?.started_at : null)
   const click = async (e: React.MouseEvent) => {
     e.stopPropagation()
     try {
-      if (running) await stopTimer()
-      else await startTimer(task.id)
+      if (running) {
+        await stopTimer()
+        toast('زمان کار ثبت شد')
+      } else {
+        await startTimer(task.id)
+        toast('تایمر شروع شد', 'info')
+      }
     } catch (err) {
       toast((err as Error).message, 'err')
     }
   }
   return (
-    <button className={`timer-btn ${running ? 'running' : ''}`} onClick={click} title={running ? 'توقف تایمر و ثبت لاگ' : 'شروع تایمر'}>
+    <button className={`timer-btn ${running ? 'running' : ''}`} onClick={click} disabled={timerBusy} title={running ? 'توقف تایمر و ثبت لاگ' : 'شروع تایمر'}>
       <Icon name={running ? 'stop' : 'play'} size={12} />
       {running && <span className="ltr">{fmtDuration(elapsed, true)}</span>}
     </button>
@@ -121,6 +126,7 @@ export function TaskEditor({ taskId, boards, onClose }: { taskId: number; boards
               </button>
             </div>
             <div className="editor-actions">
+              <DueBadge task={t} today={dayKey(new Date(), tz)} always />
               <TimerButton task={t} />
               <button
                 className="icon-btn danger"

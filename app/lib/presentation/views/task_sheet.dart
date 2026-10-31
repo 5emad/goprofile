@@ -33,7 +33,7 @@ Future<void> _sheet(BuildContext context, Widget child) {
 
 Future<void> showTaskCreate(BuildContext context, {int? boardId}) => _sheet(context, _CreateTask(boardId: boardId));
 
-Future<void> showTaskEditor(BuildContext context, int taskId) => _sheet(context, _EditTask(taskId: taskId));
+Future<void> showTaskEditor(BuildContext context, int taskId, {bool logs = false}) => _sheet(context, _EditTask(taskId: taskId, logs: logs));
 
 class _CreateTask extends StatefulWidget {
   const _CreateTask({this.boardId});
@@ -203,8 +203,9 @@ class _TaskFormState extends State<TaskForm> {
 }
 
 class _EditTask extends StatelessWidget {
-  const _EditTask({required this.taskId});
+  const _EditTask({required this.taskId, this.logs = false});
   final int taskId;
+  final bool logs;
 
   @override
   Widget build(BuildContext context) {
@@ -215,9 +216,11 @@ class _EditTask extends StatelessWidget {
         final t = vm.task!;
         return DefaultTabController(
           length: 2,
+          initialIndex: logs ? 1 : 0,
           child: _Scaffolded(
             title: '${t.label(jira)} · ${t.title}',
             actions: [
+              DueChip(t, always: true),
               TimerButton(taskId: t.id),
               IconButton(
                 tooltip: 'حذف تسک',

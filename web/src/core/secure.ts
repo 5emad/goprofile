@@ -5,8 +5,8 @@
 const te = new TextEncoder()
 const td = new TextDecoder()
 
-let API_URL: string = import.meta.env?.VITE_API_URL ?? ''
-const PINNED_KEY: string = import.meta.env?.VITE_SERVER_KEY ?? ''
+let API_URL: string = process.env.NEXT_PUBLIC_API_URL ?? ''
+const PINNED_KEY: string = process.env.NEXT_PUBLIC_SERVER_KEY ?? ''
 
 /** Points the client at another server (used by the smoke test). */
 export function setApiUrl(url: string) {
@@ -44,8 +44,38 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
   return out
 }
 
+// Whether the last request reached the server; the layout shows a banner when it did not.
+let reachable = true
+const netListeners = new Set<() => void>()
+function setReachable(v: boolean) {
+  if (reachable === v) return
+  reachable = v
+  netListeners.forEach((l) => l())
+}
+export const network = {
+  get reachable() {
+    return reachable
+  },
+  subscribe(l: () => void) {
+    netListeners.add(l)
+    return () => {
+      netListeners.delete(l)
+    }
+  },
+}
+
+function unreachable(): never {
+  setReachable(false)
+  throw new TransportError(navigator.onLine ? 'اتصال به سرور برقرار نشد؛ کمی بعد دوباره تلاش کنید' : 'اینترنت وصل نیست؛ اتصال را بررسی کنید')
+}
+
 async function fetchKey(): Promise<ServerKey> {
-  const res = await fetch(`${API_URL}/api/key`, { cache: 'no-store', credentials: 'omit' })
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/api/key`, { cache: 'no-store', credentials: 'omit' })
+  } catch {
+    unreachable()
+  }
   if (!res.ok) throw new TransportError('سرور در دسترس نیست')
   const j = (await res.json()) as { kid: string; pub: string; now: number }
   if (PINNED_KEY && j.pub !== PINNED_KEY) throw new TransportError('کلید سرور معتبر نیست')
@@ -98,8 +128,9 @@ export async function secureCall(method: string, path: string, token: string | n
       body: JSON.stringify({ v: 1, kid: sk.kid, k: b64u(epk), n: b64u(nonce), c: b64u(ct) }),
     })
   } catch {
-    throw new TransportError('اتصال به سرور برقرار نشد')
+    unreachable()
   }
+  setReachable(true)
   if (res.status === 409 && retry) {
     serverKey = null
     return secureCall(method, path, token, body, false)

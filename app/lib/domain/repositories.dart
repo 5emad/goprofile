@@ -38,7 +38,7 @@ abstract interface class WorklogRepository {
   Future<void> remove(int id);
   Future<Worklog?> running();
   Future<Worklog> start(int taskId);
-  Future<Worklog> stop([String note = '']);
+  Future<Worklog> stop({String note = '', bool complete = false});
 }
 
 abstract interface class StatsRepository {

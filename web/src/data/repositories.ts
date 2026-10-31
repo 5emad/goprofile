@@ -63,7 +63,7 @@ export const worklogRepo = {
   remove: (id: number) => http.del(`/worklogs/${id}`),
   timer: () => http.get<Worklog | null>('/timer'),
   start: (taskId: number) => http.post<Worklog>(`/tasks/${taskId}/timer`),
-  stop: (note = '') => http.post<Worklog>('/timer/stop', { note }),
+  stop: (note = '', complete = false) => http.post<Worklog>('/timer/stop', { note, complete }),
 }
 
 export const statsRepo = {

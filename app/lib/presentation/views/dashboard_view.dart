@@ -6,6 +6,7 @@ import '../../di.dart';
 import '../../domain/activity.dart';
 import '../../domain/dates.dart';
 import '../../domain/jalali.dart';
+import '../../domain/report.dart';
 import '../viewmodels/screen_vms.dart';
 import '../viewmodels/session_vm.dart';
 import '../widgets/activity.dart';
@@ -59,6 +60,7 @@ class _ReloadingState<T extends LoadableViewModel> extends State<Reloading<T>> {
         DashboardViewModel d => d.stats != null,
         BoardViewModel b => b.board != null,
         TaskEditorViewModel t => t.task != null,
+        ReportViewModel r => r.report != null,
         _ => !vm.loading || vm.error != null,
       };
 }
@@ -102,7 +104,7 @@ class DashboardView extends StatelessWidget {
     final session = context.watch<SessionViewModel>();
     final user = session.user!;
     return Reloading<DashboardViewModel>(
-      create: (d) => DashboardViewModel(d.stats, d.tasks),
+      create: (d) => DashboardViewModel(d.stats, d.tasks, d.boards),
       builder: (context, vm) {
         final s = vm.stats!;
         final best = vm.months.reduce((a, b) => b.seconds > a.seconds ? b : a);
@@ -149,6 +151,33 @@ class DashboardView extends StatelessWidget {
                     _flex(width > 1100, 10, SectionCard(title: 'دو هفته اخیر', child: DaysChart(vm.last14, goal))),
                   ],
                 ),
+                if (vm.overdue.isNotEmpty || vm.soon.isNotEmpty)
+                  SectionCard(
+                    title: 'هشدار سررسید',
+                    trailing: Text('قرمز: گذشته · نارنجی: تا $soonDays روز آینده', style: TextStyle(fontSize: 11, color: context.gp.muted)),
+                    child: Column(children: [
+                      for (final t in [...vm.overdue, ...vm.soon])
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            border: BorderDirectional(start: BorderSide(color: dueColor(context, t)!, width: 3)),
+                            color: dueColor(context, t)!.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            onTap: () => showTaskEditor(context, t.id),
+                            title: Text(t.title, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 3),
+                              child: Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [KeyChip(t.label(session.jira)), DueChip(t)]),
+                            ),
+                            trailing: TimerButton(taskId: t.id),
+                          ),
+                        ),
+                    ]),
+                  ),
+                _StatusOverview(vm),
                 SectionCard(
                   title: 'کارهای باز',
                   trailing: Text('${vm.open.length}'),
@@ -160,7 +189,7 @@ class DashboardView extends StatelessWidget {
                               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                               onTap: () => showTaskEditor(context, t.id),
                               leading: KeyChip(t.label(session.jira)),
-                              title: Text(t.title, overflow: TextOverflow.ellipsis),
+                              title: Row(children: [Flexible(child: Text(t.title, overflow: TextOverflow.ellipsis)), const SizedBox(width: 6), DueChip(t)]),
                               subtitle: Text('${t.boardName} · ${fmtDuration(t.loggedSeconds, short: true)}', style: TextStyle(color: context.gp.muted, fontSize: 12)),
                               trailing: TimerButton(taskId: t.id),
                             ),
@@ -215,3 +244,77 @@ class _GoalTile extends StatelessWidget {
         ),
       );
 }
+
+const _statusColors = [Color(0xFFC3CDB0), Color(0xFFE2B15B), Color(0xFF6F9FB0), Color(0xFFA98BC4), Color(0xFFD98B6A), Color(0xFF8FB3A0)];
+
+/// Task counts per status for every board, with overall totals.
+class _StatusOverview extends StatelessWidget {
+  const _StatusOverview(this.vm);
+  final DashboardViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final gp = context.gp;
+    final week = rangeOf(Period.week, dayKey(DateTime.now()));
+    final doneWeek = vm.tasks.where((t) => t.doneAt != null && week.contains(dayKey(t.doneAt!))).length;
+    Widget total(String label, int n, Color? c) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: gp.surface2, border: Border.all(color: gp.border), borderRadius: BorderRadius.circular(12)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('$n', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: c)),
+              Text(label, style: TextStyle(color: gp.muted, fontSize: 11.5)),
+            ]),
+          ),
+        );
+    return SectionCard(
+      title: 'وضعیت کارها',
+      trailing: Text('${vm.tasks.length} تسک', style: TextStyle(color: gp.muted, fontSize: 12)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [total('کار باز', vm.open.length, null), total('سررسید گذشته', vm.overdue.length, gp.danger)]),
+        Row(children: [total('نزدیک سررسید', vm.soon.length, gp.warn), total('انجام‌شده این هفته', doneWeek, gp.accent)]),
+        const SizedBox(height: 10),
+        for (final b in vm.boards.where((b) => b.taskCount > 0))
+          Builder(builder: (context) {
+            final mine = vm.tasks.where((t) => t.boardId == b.id).toList();
+            var n = 0;
+            final parts = [
+              for (final s in b.statuses)
+                (s, mine.where((t) => t.statusId == s.id).length, s.isDone ? gp.levels[4] : _statusColors[n++ % _statusColors.length]),
+            ];
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Expanded(child: Text(b.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+                  Text('${b.openCount} باز از ${b.taskCount}', style: TextStyle(color: gp.muted, fontSize: 12)),
+                ]),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: SizedBox(
+                    height: 12,
+                    child: Row(children: [
+                      for (final p in parts.where((p) => p.$2 > 0)) Expanded(flex: p.$2, child: Container(color: p.$3)),
+                      if (mine.isEmpty) Expanded(child: Container(color: gp.levels[0])),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(spacing: 12, runSpacing: 4, children: [
+                  for (final p in parts)
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 9, height: 9, decoration: BoxDecoration(color: p.$3, borderRadius: BorderRadius.circular(3))),
+                      const SizedBox(width: 4),
+                      Text('${p.$1.name} ${p.$2}', style: TextStyle(fontSize: 11.5, color: gp.muted)),
+                    ]),
+                ]),
+              ]),
+            );
+          }),
+      ]),
+    );
+  }
+}
+

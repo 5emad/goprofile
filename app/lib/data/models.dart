@@ -82,6 +82,7 @@ Task taskFromJson(J j) => Task(
       dueOn: j['due_on'] as String?,
       position: (j['position'] as num).toDouble(),
       doneAt: _dt(j['done_at']),
+      createdAt: _dt(j['created_at']),
       loggedSeconds: (j['logged_seconds'] as num).toInt(),
       running: j['running'] as bool? ?? false,
       worklogs: ((j['worklogs'] as List?) ?? []).map((e) => worklogFromJson(e as J)).toList(),

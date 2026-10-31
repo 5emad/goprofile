@@ -1,0 +1,6 @@
+# Copy to key.properties (git-ignored) and fill in. Keep the .jks file and these
+# passwords safe and backed up: losing them means future APKs cannot update the app.
+storeFile=upload-keystore.jks
+storePassword=
+keyAlias=goprofile
+keyPassword=

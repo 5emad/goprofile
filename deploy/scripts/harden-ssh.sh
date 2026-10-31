@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Disables password and root login over SSH. Run as root only after you have
+# Disables password login over SSH (root may still log in with a key). Run as root only after you have
 # confirmed that key login works for the deploy user, or you will be locked out.
 set -euo pipefail
 
@@ -9,7 +9,7 @@ if [ ! -s /home/deploy/.ssh/authorized_keys ]; then
 fi
 
 cat >/etc/ssh/sshd_config.d/90-goprofile.conf <<'EOF'
-PermitRootLogin no
+PermitRootLogin prohibit-password
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes

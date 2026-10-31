@@ -61,7 +61,7 @@ export function Landing() {
 
   return (
     <div className="landing">
-      <Seo title="گوپروفایل؛ ثبت فعالیت، تایمر کار و گزارش کارکرد" description={DESCRIPTION} path="/" />
+      <Seo title="ثبت فعالیت، تایمر کار و گزارش کارکرد" description={DESCRIPTION} path="/" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(LD) }} />
 
       <header className="ld-nav">

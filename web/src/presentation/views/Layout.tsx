@@ -84,7 +84,7 @@ function DueBanner() {
   const list = open.data ?? []
   const overdue = list.filter((t) => dueState(t, today) === 'overdue').length
   const soon = list.filter((t) => ['today', 'soon'].includes(dueState(t, today) ?? '')).length
-  if (pathname === '/' || (!overdue && !soon)) return null
+  if (pathname === '/dashboard' || (!overdue && !soon)) return null
   return (
     <div className={`due-banner ${overdue ? 'overdue' : 'soon'}`} role="status">
       <Icon name="alert" size={16} />

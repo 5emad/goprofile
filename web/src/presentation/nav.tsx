@@ -4,7 +4,8 @@ import { useRouter } from 'next/router'
 import { useEffect, type ReactNode } from 'react'
 
 export const routes = {
-  dashboard: '/',
+  home: '/',
+  dashboard: '/dashboard/',
   login: '/login/',
   boards: '/boards/',
   board: (id: number) => `/boards/view/?id=${id}`,

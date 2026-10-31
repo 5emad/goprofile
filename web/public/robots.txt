@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /$
+Allow: /login/
+Disallow: /dashboard/
+Disallow: /boards/
+Disallow: /tasks/
+Disallow: /reports/
+Disallow: /settings/
+Disallow: /profile/
+Disallow: /api/
+Disallow: /app/
+
+Sitemap: https://goprofile.ir/sitemap.xml

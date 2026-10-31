@@ -1,0 +1,15 @@
+{
+  "name": "گوپروفایل",
+  "short_name": "گوپروفایل",
+  "description": "ثبت فعالیت، تایمر کار و گزارش کارکرد",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/dashboard/",
+  "display": "standalone",
+  "background_color": "#f6f6f1",
+  "theme_color": "#2f3a24",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

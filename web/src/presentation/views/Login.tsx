@@ -36,8 +36,8 @@ export function Login() {
   return (
     <div className="auth">
       <div className="auth-art" aria-hidden="true">
-        {Array.from({ length: 7 * 18 }, (_, i) => (
-          <i key={i} className={`lv-swatch lv${[0, 0, 1, 0, 2, 0, 3, 1, 0, 4, 2, 0][(i * 7 + (i >> 3)) % 12]}`} style={{ animationDelay: `${(i % 18) * 40}ms` }} />
+        {Array.from({ length: 24 * 24 }, (_, i) => (
+          <i key={i} className={`lv-swatch lv${[0, 0, 1, 0, 2, 0, 3, 1, 0, 4, 2, 0][(i * 7 + (i >> 3)) % 12]}`} style={{ animationDelay: `${(i % 24) * 30}ms` }} />
         ))}
       </div>
       <form className="auth-card" onSubmit={onSubmit}>

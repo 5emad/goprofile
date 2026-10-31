@@ -441,8 +441,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .profile-info { display: flex; flex-direction: column; }
 
 /* ---------- auth ---------- */
-.auth { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; position: relative; overflow: hidden; }
-.auth-art { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(18, 1fr); gap: 10px; padding: 30px; opacity: 0.55; transform: rotate(-8deg) scale(1.3); direction: ltr; }
+.auth { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; position: relative; overflow: hidden; }
+/* Oversized and centred so the rotated grid always covers the whole viewport. */
+.auth-art { position: absolute; top: 50%; left: 50%; width: 160vmax; height: 160vmax; translate: -50% -50%; display: grid; grid-template-columns: repeat(24, 1fr); grid-auto-rows: max-content; align-content: center; gap: 10px; opacity: 0.55; transform: rotate(-8deg); direction: ltr; pointer-events: none; }
 .auth-art i { width: 100%; aspect-ratio: 1; height: auto; border-radius: 6px; animation: rise 0.6s ease both; }
 .auth-card {
   position: relative; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; align-items: stretch;
@@ -663,4 +664,41 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- landing ---------- */
+.landing { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.ld-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; }
+.ld-nav nav { display: flex; align-items: center; gap: 18px; font-weight: 600; }
+.ld-nav nav a:not(.btn) { color: var(--muted); }
+.ld-nav nav a:not(.btn):hover { color: var(--text); }
+.ld-hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; padding: 48px 0 64px; }
+.ld-hero h1 { font-size: 40px; font-weight: 900; line-height: 1.5; margin: 0 0 16px; }
+.ld-hero p { font-size: 17px; line-height: 2; color: var(--muted); margin: 0; }
+.ld-cta { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+.ld-cta .btn { height: 46px; padding: 0 26px; font-size: 15px; }
+.ld-hero-art { position: relative; min-height: 340px; display: grid; place-items: center; }
+.ld-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(16, 1fr); gap: 6px; align-content: center; direction: ltr; transform: rotate(-8deg); opacity: 0.7; }
+.ld-grid i { aspect-ratio: 1; border-radius: 4px; }
+.ld-timer { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 26px 34px; border-radius: 26px; background: #1f2418; color: #eef3e4; box-shadow: 0 30px 60px -24px rgba(20, 30, 10, 0.6); }
+.ld-timer .muted { color: #a3ab95; }
+.ld-ring { margin-top: 14px; width: 170px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(closest-side, #1f2418 82%, transparent 83% 100%), conic-gradient(#8aa665 0 59%, #33402a 59% 100%); font-size: 26px; font-weight: 800; }
+.ld-section { padding: 40px 0; }
+.ld-section h2 { font-size: 26px; font-weight: 800; text-align: center; margin: 0 0 26px; }
+.ld-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.ld-feature h3 { font-size: 16px; margin: 12px 0 6px; }
+.ld-feature p { margin: 0; color: var(--muted); line-height: 1.9; font-size: 14px; }
+.ld-steps ol { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; line-height: 2; font-size: 15.5px; }
+.ld-faq { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.ld-faq summary { cursor: pointer; font-weight: 700; }
+.ld-faq p { margin: 10px 0 0; color: var(--muted); line-height: 1.9; }
+.ld-final { text-align: center; }
+.ld-final .btn { height: 46px; padding: 0 30px; }
+.ld-foot { text-align: center; padding: 30px 0 40px; border-top: 1px solid var(--border); }
+@media (max-width: 860px) {
+  .ld-hero { grid-template-columns: 1fr; padding: 24px 0 40px; }
+  .ld-hero h1 { font-size: 28px; }
+  .ld-features { grid-template-columns: 1fr; }
+  .ld-nav nav a:not(.btn) { display: none; }
+  .ld-hero-art { min-height: 280px; overflow: hidden; border-radius: 20px; }
 }

@@ -13,6 +13,8 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
+# The key volume mounts here; a fresh volume copies this owner.
+RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 8080
 CMD ["node", "dist/main.js"]

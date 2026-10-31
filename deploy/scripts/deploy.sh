@@ -32,6 +32,7 @@ if ! docker compose --env-file .env up -d --wait; then
 fi
 
 # Pin the server public key into the web build so clients refuse a swapped key.
+for _ in $(seq 30); do curl -fsS -o /dev/null http://127.0.0.1:8080/healthz && break; sleep 2; done
 PUB=$(curl -fsS http://127.0.0.1:8080/api/key | sed -E 's/.*"pub":"([^"]+)".*/\1/')
 
 TMP=$(mktemp -d)
